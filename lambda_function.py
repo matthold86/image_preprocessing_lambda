@@ -3,7 +3,14 @@ import urllib.parse
 import cv2
 import numpy as np
 from io import BytesIO
+import logging
+import sys
 
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+stream_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stream_handler)
 
 # Initialize the S3 and DynamoDB clients
 s3_client = boto3.client('s3')
@@ -12,7 +19,7 @@ dynamodb = boto3.resource('dynamodb')
 # Specify your DynamoDB table name
 table_name = 'yolov8_images'
 table = dynamodb.Table(table_name)
-print(table)
+logger.info(table)
 
 def lambda_handler(event, context):
     # Extract bucket name and object key from the event
@@ -20,8 +27,8 @@ def lambda_handler(event, context):
     object_key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     object_url = f"https://{bucket_name}.s3.amazonaws.com/{object_key}"
     
-    print(object_key)
-    print(object_url)
+    logger.info(object_key)
+    logger.info(object_url)
     
     # Extract "image_id" from object key
     key_parts = object_key.split('/')
@@ -36,20 +43,20 @@ def lambda_handler(event, context):
     )
     
     # # If item exists, update it, otherwise put a new item
-    # try:
-    #     # If item exists, update it, otherwise put a new item
-    #     if 'Item' in response:
-    #         raise Exception(f"An image with the specified image_id [[[{image_id}]]] already exists.")
-    #     else:
-    #         table.put_item(
-    #         Item={
-    #             'image_id': image_id,
-    #             'rawimage_objectkey': object_url
-    #             }
-    #         )
+    try:
+        # If item exists, update it, otherwise put a new item
+        if 'Item' in response:
+            raise Exception(f"An image with the specified image_id [[[{image_id}]]] already exists.")
+        else:
+            table.put_item(
+            Item={
+                'image_id': image_id,
+                'rawimage_objectkey': object_url
+                }
+            )
 
-    # except Exception as e:
-    #     print(f"Error: {e}")
+    except Exception as e:
+        print(f"Error: {e}")
 
     # Preprocess image
     
@@ -60,7 +67,7 @@ def lambda_handler(event, context):
     # Decode image
     image_array = np.frombuffer(image_file_body, dtype=np.uint8)
     orig_image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-    print('cleared')
+    logger.info('cleared')
     
     return {
         'statusCode': 200,
