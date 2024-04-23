@@ -5,6 +5,7 @@ import numpy as np
 from io import BytesIO
 import logging
 import sys
+import json
 
 # Initialize the S3 clients
 s3_client = boto3.client('s3')
@@ -48,17 +49,21 @@ def lambda_handler(event, context):
     resized_height, resized_width, _ = resized_image.shape
     _, buffer = cv2.imencode('.jpg', resized_image)
     processed_image = buffer.tobytes()
+    logger.info(f'Resized Image: {resized_width}x{resized_height}')
+    logger.info(f'Original Image: {image_width}x{image_height}')
 
     # Upload the processed image to S3
     target_key = "preprocessed-images/" + image_id
     s3_client.put_object(Bucket=bucket_name, Key=target_key, Body=processed_image)
     
-    logger.info('Image uploaded to S3.')
+    logger.info(f'Successfully processed and uploaded the image to {target_key}')
 
-    return {
-        'statusCode': 200,
-        'body': f'Successfully processed and uploaded the image to {target_key}',
-        'originalDimensions': f'{image_width}x{image_height}',
-        'resizedDimensions': f'{resized_width}x{resized_height}',
-        'newS3Location': f'{target_key}'
+    # Structure the response to include this in a 'Payload' key
+    response = {
+        "Payload": {
+            "S3ObjectKey": target_key
+        }
     }
+
+    # Return the structured response
+    return json.dumps(response)
