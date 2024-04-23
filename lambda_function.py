@@ -29,6 +29,7 @@ def lambda_handler(event, context):
     key_parts = object_key.split('/')
     image_id_with_extension = key_parts[-1]
     image_id = '.'.join(image_id_with_extension.split('.')[:-1])  # Remove the file extension
+    logger.info(image_id)
 
     # Preprocess image
     
@@ -53,7 +54,7 @@ def lambda_handler(event, context):
     logger.info(f'Original Image: {image_width}x{image_height}')
 
     # Upload the processed image to S3
-    target_key = "preprocessed-images/" + image_id
+    target_key = "preprocessed-images/" + image_id + ".jpg"
     s3_client.put_object(Bucket=bucket_name, Key=target_key, Body=processed_image)
     
     logger.info(f'Successfully processed and uploaded the image to {target_key}')
