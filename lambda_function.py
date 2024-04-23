@@ -38,9 +38,27 @@ def lambda_handler(event, context):
     # Decode image
     image_array = np.frombuffer(image_file_body, dtype=np.uint8)
     orig_image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-    logger.info('cleared')
+    logger.info('Image decoded successfully.')
     
+    # Preprocess the image
+    image_height, image_width, _ = orig_image.shape
+    model_height, model_width = 300, 300
+
+    resized_image = cv2.resize(orig_image, (model_width, model_height))
+    resized_height, resized_width, _ = resized_image.shape
+    _, buffer = cv2.imencode('.jpg', resized_image)
+    processed_image = buffer.tobytes()
+
+    # Upload the processed image to S3
+    target_key = "preprocessed-images/" + image_id
+    s3_client.put_object(Bucket=bucket_name, Key=target_key, Body=processed_image)
+    
+    logger.info('Image uploaded to S3.')
+
     return {
         'statusCode': 200,
-        'body': f"Successfully processed {object_key}."
+        'body': f'Successfully processed and uploaded the image to {target_key}',
+        'originalDimensions': f'{image_width}x{image_height}',
+        'resizedDimensions': f'{resized_width}x{resized_height}',
+        'newS3Location': f'{target_key}'
     }
