@@ -6,26 +6,20 @@ from io import BytesIO
 import logging
 import sys
 
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
-
-# Initialize the S3 and DynamoDB clients
+# Initialize the S3 clients
 s3_client = boto3.client('s3')
-dynamodb = boto3.resource('dynamodb')
-
-# Specify your DynamoDB table name
-table_name = 'yolov8_images'
-table = dynamodb.Table(table_name)
-logger.info(table)
 
 def lambda_handler(event, context):
-    # Extract bucket name and object key from the event
-    bucket_name = event['Records'][0]['s3']['bucket']['name']
-    object_key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
-    object_url = f"https://{bucket_name}.s3.amazonaws.com/{object_key}"
+    # Initialize Logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(stream_handler)
+
+    # Extract object key and object url from stepfunction payload
+    object_key = event['object_key']
+    object_url = event['object_url']
+    bucket_name = event['bucket']
     
     logger.info(object_key)
     logger.info(object_url)
@@ -34,29 +28,6 @@ def lambda_handler(event, context):
     key_parts = object_key.split('/')
     image_id_with_extension = key_parts[-1]
     image_id = '.'.join(image_id_with_extension.split('.')[:-1])  # Remove the file extension
-    
-    # Check if item exists
-    response = table.get_item(
-        Key={
-            'image_id': image_id
-        }
-    )
-    
-    # # If item exists, update it, otherwise put a new item
-    try:
-        # If item exists, update it, otherwise put a new item
-        if 'Item' in response:
-            raise Exception(f"An image with the specified image_id [[[{image_id}]]] already exists.")
-        else:
-            table.put_item(
-            Item={
-                'image_id': image_id,
-                'rawimage_objectkey': object_url
-                }
-            )
-
-    except Exception as e:
-        print(f"Error: {e}")
 
     # Preprocess image
     
