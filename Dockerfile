@@ -63,4 +63,4 @@ RUN pip install awscli
 # Copy in the built dependencies
 COPY --from=build-image ${FUNCTION_DIR} ${FUNCTION_DIR}
 ENTRYPOINT [ "/usr/local/bin/python", "-m", "awslambdaric" ]
-CMD [ "app.lambda_handler" ]
+CMD [ "lambda_function.lambda_handler" ]
