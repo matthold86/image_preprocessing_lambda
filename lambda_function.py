@@ -62,7 +62,8 @@ def lambda_handler(event, context):
     # Structure the response to include this in a 'Payload' key
     response = {
         "Payload": {
-            "image_data": processed_image
+            "preprocessed_objectkey": target_key,
+            "bucket_name": bucket_name
         }
     }
 
