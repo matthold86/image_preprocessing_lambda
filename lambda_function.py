@@ -18,23 +18,24 @@ def lambda_handler(event, context):
     logger.addHandler(stream_handler)
 
     # Extract object key and object url from stepfunction payload
-    object_key = event['object_key']
-    object_url = event['object_url']
+    # Raw object_key
+    raw_objectkey = event['raw_objectkey']
+    raw_objecturl = event['raw_objecturl']
     bucket_name = event['bucket']
     
-    logger.info(object_key)
-    logger.info(object_url)
+    logger.info(raw_objectkey)
+    logger.info(raw_objecturl)
     
     # Extract "image_id" from object key
-    key_parts = object_key.split('/')
+    key_parts = raw_objectkey.split('/')
     image_id_with_extension = key_parts[-1]
     image_id = '.'.join(image_id_with_extension.split('.')[:-1])  # Remove the file extension
     logger.info(image_id)
 
     # Preprocess image
     
-    # Download image from S3
-    file_obj = s3_client.get_object(Bucket=bucket_name, Key=object_key)
+    # Download raw image from S3
+    file_obj = s3_client.get_object(Bucket=bucket_name, Key=raw_objectkey)
     image_file_body = file_obj['Body'].read()
     
     # Decode image
@@ -63,7 +64,9 @@ def lambda_handler(event, context):
     response = {
         "Payload": {
             "preprocessed_objectkey": target_key,
-            "bucket_name": bucket_name
+            "bucket_name": bucket_name,
+            "raw_objectkey": raw_objectkey,
+            "image_id": image_id
         }
     }
 
